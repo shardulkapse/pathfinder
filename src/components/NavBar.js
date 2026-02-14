@@ -17,7 +17,6 @@ import Switch from "@material-ui/core/Switch";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import FormLabel from "@material-ui/core/FormLabel";
 import RadioGroup from "@material-ui/core/RadioGroup";
-import GitHubIcon from "@material-ui/icons/GitHub";
 import SwipeableDrawer from "@material-ui/core/SwipeableDrawer";
 import { makeStyles, withStyles } from "@material-ui/core/styles";
 import { Divider } from "@material-ui/core";
