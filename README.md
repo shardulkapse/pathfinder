@@ -1,68 +1,36 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Pathfinder
 
-## Available Scripts
+An interactive React visualiser for pathfinding and maze-generation algorithms.
 
-In the project directory, you can run:
+**Live demo:** [pathfinder-pink.vercel.app](https://pathfinder-pink.vercel.app)
 
-### `npm start`
+## What it does
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Pathfinder lets you draw a grid, place start and end nodes, optionally fill the grid with a generated maze, and watch a pathfinding algorithm explore the grid step-by-step before tracing the shortest path it found. It's built as a playground for comparing how different algorithms and heuristics behave on the same grid.
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+## Features
 
-### `npm test`
+- **Three pathfinding algorithms:** Dijkstra, A\*, and Jump Point Search
+- **Four A\* heuristics:** Euclidean, Manhattan, Chebyshev, and Octile — switchable at runtime to compare behaviour
+- **Diagonal movement toggle** for algorithms that support it
+- **Three maze generators:** Kruskal's, Prim's, and Recursive Division
+- **Animated maze building** (optional) so you can see how each generator constructs the maze
+- **Interactive grid:** click to move start/end nodes, click-and-drag to draw or erase walls
+- **Responsive grid** that adapts to the viewport — roughly 41×61 cells on extra-large screens down to 43×31 on mobile
+- **Clear grid** to reset walls and the previous run
 
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Animation
 
-### `npm run build`
+Visited nodes are animated as the algorithm explores the grid, and the shortest path is then animated on top once the search completes.
 
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Running locally
 
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
+```bash
+git clone https://github.com/shardulkapse/pathfinder.git
+cd pathfinder
+npm install
+npm start
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Open [http://localhost:3000](http://localhost:3000).
 
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
-
-### Analyzing the Bundle Size
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
-
-### Making a Progressive Web App
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
-
-### Advanced Configuration
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
-
-### Deployment
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
-
-### `npm run build` fails to minify
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
