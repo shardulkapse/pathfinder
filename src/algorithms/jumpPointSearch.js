@@ -3,9 +3,12 @@ import PriorityQueue from "js-priority-queue";
 const jumpPointSearch = (grid, startNode, endNode) => {
   let visitedNodes = [];
   let shortestPath = [];
+  //Entries carry an f snapshot taken at enqueue time. Comparing a.node.f
+  //re-read the key of entries already sifted into place, so any later write to
+  //that node's f corrupted the heap ordering.
   let pq = new PriorityQueue({
     comparator: function(a, b) {
-      return a.node.f - b.node.f;
+      return a.f - b.f;
     }
   });
   grid.forEach(row => {
@@ -15,6 +18,8 @@ const jumpPointSearch = (grid, startNode, endNode) => {
       //f = g + h
       node.f = Infinity;
       node.prevNode = null;
+      node.isVisited = false;
+      node.isShortestPath = false;
     });
   });
   grid[startNode.row][startNode.column].g = 0;
@@ -37,24 +42,32 @@ const jumpPointSearch = (grid, startNode, endNode) => {
   ];
 
   n.forEach(d => {
-    pq.queue({ node: grid[startNode.row][startNode.column], dir: d });
+    pq.queue({
+      node: grid[startNode.row][startNode.column],
+      dir: d,
+      f: grid[startNode.row][startNode.column].f
+    });
     //grid[startNode.row][startNode.column].prevNode[d[0]][d[1]] = null;
   });
+  let found = false;
   while (pq.length) {
     const obj = pq.dequeue();
     if (!obj.node.isVisited) {
       obj.node.isVisited = true;
       visitedNodes.push(obj.node);
     }
-    /*console.log(
-      obj.node.row + "," + obj.node.col + "-dir:" + obj.dir + "-f:" + obj.node.f
-    );*/
     const response = scan(obj.node, obj.dir, grid, endNode, pq);
     if (response === "found") {
+      found = true;
       break;
     }
   }
-  shortestPath = getShortestPath(grid[endNode.row][endNode.column]);
+  //Guard the unreachable case. Walking the prevNode chain of an end node that
+  //was never reached yields [endNode], which the UI then reports as a
+  //1-node "shortest path" for a target with no route to it.
+  shortestPath = found
+    ? getShortestPath(grid[endNode.row][endNode.column])
+    : [];
   return { visitedNodes, shortestPath };
 };
 //x = c // y = r
@@ -72,7 +85,8 @@ const scan = (node, dir, grid, endNode, pq) => {
       let r1 = r0 + x;
       if (!inGrid(r1, c1, grid)) return false;
       let g = grid[r1][c1];
-      let ng = grid[r0][c0].g + 1;
+      //diagonal step
+      let ng = grid[r0][c0].g + Math.SQRT2;
       let nf = ng + H(r1, c1, endNode);
       if (g.f <= nf) return false;
       g.g = ng;
@@ -92,7 +106,7 @@ const scan = (node, dir, grid, endNode, pq) => {
         inGrid(r2, c0, grid) &&
         (!grid[r2][c0].isWall || (r2 === endNode.row && c0 === endNode.column))
       ) {
-        pq.queue({ node: grid[r1][c1], dir: [x, -y] });
+        pq.queue({ node: grid[r1][c1], dir: [x, -y], f: nf });
         jump = true;
       }
       if (
@@ -101,7 +115,7 @@ const scan = (node, dir, grid, endNode, pq) => {
         inGrid(r0, c2, grid) &&
         (!grid[r0][c2].isWall || (r0 === endNode.row && c2 === endNode.column))
       ) {
-        pq.queue({ node: grid[r1][c1], dir: [-x, y] });
+        pq.queue({ node: grid[r1][c1], dir: [-x, y], f: nf });
         jump = true;
       }
       let hor = scan(grid[r1][c1], [0, y], grid, endNode, pq);
@@ -111,7 +125,7 @@ const scan = (node, dir, grid, endNode, pq) => {
         jump = true;
       }
       if (jump) {
-        pq.queue({ node: grid[r1][c1], dir: [x, y] });
+        pq.queue({ node: grid[r1][c1], dir: [x, y], f: nf });
         return true;
       }
       c0 = c1;
@@ -146,7 +160,7 @@ const scan = (node, dir, grid, endNode, pq) => {
         (!grid[r0 - 1][c2].isWall ||
           (r0 - 1 === endNode.row && c2 === endNode.column))
       ) {
-        pq.queue({ node: grid[r0][c1], dir: [-1, y] });
+        pq.queue({ node: grid[r0][c1], dir: [-1, y], f: nf });
         jump = true;
       }
       if (
@@ -156,11 +170,11 @@ const scan = (node, dir, grid, endNode, pq) => {
         (!grid[r0 + 1][c2].isWall ||
           (r0 + 1 === endNode.row && c2 === endNode.column))
       ) {
-        pq.queue({ node: grid[r0][c1], dir: [1, y] });
+        pq.queue({ node: grid[r0][c1], dir: [1, y], f: nf });
         jump = true;
       }
       if (jump) {
-        pq.queue({ node: grid[r0][c1], dir: [0, y] });
+        pq.queue({ node: grid[r0][c1], dir: [0, y], f: nf });
         return true;
       }
       c0 = c1;
@@ -194,7 +208,7 @@ const scan = (node, dir, grid, endNode, pq) => {
         (!grid[r2][c0 - 1].isWall ||
           (r2 === endNode.row && c0 - 1 === endNode.column))
       ) {
-        pq.queue({ node: grid[r1][c0], dir: [x, -1] });
+        pq.queue({ node: grid[r1][c0], dir: [x, -1], f: nf });
         jump = true;
       }
       if (
@@ -204,11 +218,11 @@ const scan = (node, dir, grid, endNode, pq) => {
         (!grid[r2][c0 + 1].isWall ||
           (r2 === endNode.row && c0 + 1 === endNode.column))
       ) {
-        pq.queue({ node: grid[r1][c0], dir: [x, 1] });
+        pq.queue({ node: grid[r1][c0], dir: [x, 1], f: nf });
         jump = true;
       }
       if (jump) {
-        pq.queue({ node: grid[r1][c0], dir: [x, y] });
+        pq.queue({ node: grid[r1][c0], dir: [x, y], f: nf });
         return true;
       }
       r0 = r1;
@@ -221,21 +235,13 @@ const inGrid = (row, col, grid) => {
 };
 
 const H = (row, col, endNode) => {
+  //Octile distance: the exact obstacle-free cost under scan()'s model of 1 per
+  //straight step and Math.SQRT2 per diagonal. It has to match that model to
+  //stay admissible -- the Euclidean distance this used to return overestimates
+  //it, which cost JPS the optimality guarantee it inherits from A*.
   const dx = Math.abs(row - endNode.row);
   const dy = Math.abs(col - endNode.column);
-  const d = 1;
-  let ans = d * Math.sqrt(dx * dx + dy * dy);
-  /*if (heuristic === "manhatten") {
-      ans = d * (dx + dy);
-    }
-    if (heuristic === "euclidean") {
-      ans = d * Math.sqrt(dx * dx + dy * dy);
-    }
-    if (heuristic === "octile" || heuristic === "chebyshev") {
-      let d2 = diagDist;
-      ans = d * Math.max(dx, dy) + (d2 - d) * Math.min(dx, dy);
-    }*/
-  return ans;
+  return Math.max(dx, dy) + (Math.SQRT2 - 1) * Math.min(dx, dy);
 };
 
 const getShortestPath = node => {

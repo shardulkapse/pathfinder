@@ -156,8 +156,10 @@ function NavBar(props) {
           <FormControlLabel
             control={
               <OrangeSwitch
-                checked={diag}
-                disabled={anim}
+                //Jump Point Search is inherently 8-directional, so the toggle
+                //has no effect while it is selected.
+                checked={algo === 2 ? true : diag}
+                disabled={anim || algo === 2}
                 onChange={() => allowDiag(!diag)}
                 value="allowDiagonals"
               />
@@ -165,6 +167,13 @@ function NavBar(props) {
             label="Allow Diagonals"
           />
         </ListItem>
+        {algo === 2 && (
+          <ListItem>
+            <Typography variant="caption" color="textSecondary">
+              Jump Point Search always moves diagonally.
+            </Typography>
+          </ListItem>
+        )}
         <ListItem>
           <FormControlLabel
             control={
@@ -213,9 +222,9 @@ function NavBar(props) {
                 />
                 <FormControlLabel
                   size="small"
-                  value="manhatten"
+                  value="manhattan"
                   control={<OrangeRadio />}
-                  label="Manhatten"
+                  label="Manhattan"
                 />
                 <FormControlLabel
                   size="small"
@@ -230,6 +239,12 @@ function NavBar(props) {
                   label="Octile"
                 />
               </RadioGroup>
+              {diag && heuristic[1] === "manhattan" && (
+                <Typography variant="caption" color="error">
+                  Manhattan overestimates the cost of a diagonal move, so A* can
+                  return a path that is not the shortest one.
+                </Typography>
+              )}
             </CardContent>
           </Collapse>
         </ListItem>
@@ -323,7 +338,7 @@ function NavBar(props) {
               variant="text"
               disableElevation
               onClick={() => {
-                props.visualizeMaze(animateMaze);
+                props.visualizeMaze();
               }}
               disabled={anim}
             >
@@ -370,8 +385,17 @@ function NavBar(props) {
   );
 }
 
+//Selecting the whole store re-rendered the entire navbar on every `visited` /
+//`shortest` dispatch, i.e. once per animation frame. Only these six matter here.
 const mapStateToProps = (state) => {
-  return state;
+  return {
+    algo: state.algo,
+    diag: state.diag,
+    heuristic: state.heuristic,
+    maze: state.maze,
+    animMaze: state.animMaze,
+    anim: state.anim,
+  };
 };
 
 export default connect(mapStateToProps, {

@@ -10,7 +10,7 @@ const diagReducer = (allowDiag = false, action) => {
   return allowDiag;
 };
 
-const heuristicReducer = (heuristic = { 1: "manhatten" }, action) => {
+const heuristicReducer = (heuristic = { 1: "manhattan" }, action) => {
   if (action.type === "CHANGE_HEURISTIC")
     return { ...heuristic, ...action.payload };
   return heuristic;
