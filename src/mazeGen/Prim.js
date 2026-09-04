@@ -78,7 +78,6 @@ const prim = (grid, rows, columns) => {
     });
     delete frontier[randFKey];
   }
-  console.log(addedWalls.length);
   return { addedWalls, removedWalls, animAddedWalls: false };
 };
 

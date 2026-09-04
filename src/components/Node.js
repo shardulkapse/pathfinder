@@ -24,7 +24,6 @@ class Node extends React.PureComponent {
       : "";
     return (
       <td
-        id={`node-${row}-${column}`}
         className={`node ${statusClass}`}
         ref={this.props.forwardRef}
         onClick={() => onMouseClick(row, column)}

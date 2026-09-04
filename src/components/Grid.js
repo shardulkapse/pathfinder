@@ -3,8 +3,8 @@ import Node from "./Node";
 import dijkstra from "../algorithms/dijkstra";
 import astar from "../algorithms/astar";
 import jumpPointSearch from "../algorithms/jumpPointSearch";
-import kruskal from "../mazeGen/kruskall";
-import recursiveDivision from "../mazeGen/recursiveDivison";
+import kruskal from "../mazeGen/kruskal";
+import recursiveDivision from "../mazeGen/recursiveDivision";
 import prim from "../mazeGen/Prim";
 import Card from "@material-ui/core/Card";
 import { withStyles } from "@material-ui/core/styles";
@@ -22,6 +22,29 @@ let isAnimated = false;
 const startNodeClass = "start-node";
 const endNodeClass = "end-node";
 const wallClass = "wall";
+
+//Animation pacing. Painting a single node per frame meant a full-grid sweep
+//took 2500 frames - over 40 seconds at 60fps. Budgets are wall-clock rather
+//than frame counts so the speed does not double on a 120/144Hz display.
+//
+//Each animation runs for MS_PER_x per item, capped at the total _MS budget, so
+//a short path is not stretched across the whole duration while a full-grid
+//sweep still finishes in reasonable time. Tune these to taste.
+const VISIT_MS = 5000;
+const VISIT_MS_PER_NODE = 12;
+const PATH_MS = 2000;
+const PATH_MS_PER_NODE = 30;
+const MAZE_MS = 4000;
+const MAZE_MS_PER_CELL = 8;
+
+const durationFor = (count, maxMs, msPerItem) =>
+  Math.min(maxMs, count * msPerItem);
+
+//How many items should have been painted `elapsed` ms into the animation.
+const targetIndex = (elapsed, duration, total) =>
+  duration <= 0
+    ? total
+    : Math.min(total, Math.ceil((elapsed / duration) * total));
 
 const GridContainer = withStyles({
   root: {
@@ -304,10 +327,19 @@ class TGrid extends React.Component {
     }
     return response;
   };
-  animate = async (visitedNodes, shortestPath, grid) => {
+  animate = (visitedNodes, shortestPath, grid) => {
+    const visitMs = durationFor(
+      visitedNodes.length,
+      VISIT_MS,
+      VISIT_MS_PER_NODE,
+    );
+    const pathMs = durationFor(shortestPath.length, PATH_MS, PATH_MS_PER_NODE);
     let i = 0,
       j = 0;
-    const animateVisitedNodes = async () => {
+    let visitStart = null;
+    let pathStart = null;
+    const animateVisitedNodes = (now) => {
+      if (visitStart === null) visitStart = now;
       if (i === visitedNodes.length) {
         if (shortestPath.length) requestAnimationFrame(animateShortestPath);
         else {
@@ -317,26 +349,35 @@ class TGrid extends React.Component {
         }
         return;
       }
-      const { row, col } = visitedNodes[i];
-      this.nodeRefs[row][col].current.classList.add("visited-anim");
-      ++i;
-      this.props.setVisited(i);
+      const stop = targetIndex(now - visitStart, visitMs, visitedNodes.length);
+      if (stop > i) {
+        for (; i < stop; i++) {
+          const { row, col } = visitedNodes[i];
+          this.nodeRefs[row][col].current.classList.add("visited-anim");
+        }
+        this.props.setVisited(i);
+      }
       requestAnimationFrame(animateVisitedNodes);
     };
-    const animateShortestPath = () => {
+    const animateShortestPath = (now) => {
+      if (pathStart === null) pathStart = now;
       if (j === shortestPath.length) {
         isAnimated = true;
         this.props.setAnimating(false);
         this.setGrid(grid);
         return;
       }
-      const { row, col } = shortestPath[j];
-      this.nodeRefs[row][col].current.classList.add("shortest-path-anim");
-      ++j;
-      this.props.setShortest(j);
+      const stop = targetIndex(now - pathStart, pathMs, shortestPath.length);
+      if (stop > j) {
+        for (; j < stop; j++) {
+          const { row, col } = shortestPath[j];
+          this.nodeRefs[row][col].current.classList.add("shortest-path-anim");
+        }
+        this.props.setShortest(j);
+      }
       requestAnimationFrame(animateShortestPath);
     };
-    await requestAnimationFrame(animateVisitedNodes);
+    requestAnimationFrame(animateVisitedNodes);
   };
 
   visualizeRealTime = (sn, en) => {
@@ -365,7 +406,7 @@ class TGrid extends React.Component {
     await this.clearGrid();
     let grid = this.state.grid;
     if (!this.props.animMaze) {
-      this.getResponseFromMaze(grid, this.props.maze);
+      this.getResponseFromMaze(grid);
       await this.setGrid(grid);
     } else {
       this.props.setAnimating(true);
@@ -390,8 +431,16 @@ class TGrid extends React.Component {
   };
 
   animateMaze = (addedWalls, removedWalls, grid, animAddedWalls) => {
+    const addMs = durationFor(addedWalls.length, MAZE_MS, MAZE_MS_PER_CELL);
+    const removeMs = durationFor(
+      removedWalls.length,
+      MAZE_MS,
+      MAZE_MS_PER_CELL,
+    );
     let i = 0;
-    const animateAddedWalls = () => {
+    let addStart = null;
+    const animateAddedWalls = (now) => {
+      if (addStart === null) addStart = now;
       if (i === addedWalls.length) {
         if (removedWalls.length) requestAnimationFrame(animateRemovedWalls);
         else {
@@ -400,21 +449,27 @@ class TGrid extends React.Component {
         }
         return;
       }
-      const { row, col } = addedWalls[i];
-      this.nodeRefs[row][col].current.classList.add(wallClass);
-      ++i;
+      const stop = targetIndex(now - addStart, addMs, addedWalls.length);
+      for (; i < stop; i++) {
+        const { row, col } = addedWalls[i];
+        this.nodeRefs[row][col].current.classList.add(wallClass);
+      }
       requestAnimationFrame(animateAddedWalls);
     };
     let j = 0;
-    const animateRemovedWalls = () => {
+    let removeStart = null;
+    const animateRemovedWalls = (now) => {
+      if (removeStart === null) removeStart = now;
       if (j === removedWalls.length) {
         this.props.setAnimating(false);
         this.setGrid(grid);
         return;
       }
-      const { row, col } = removedWalls[j];
-      this.nodeRefs[row][col].current.classList.remove(wallClass);
-      ++j;
+      const stop = targetIndex(now - removeStart, removeMs, removedWalls.length);
+      for (; j < stop; j++) {
+        const { row, col } = removedWalls[j];
+        this.nodeRefs[row][col].current.classList.remove(wallClass);
+      }
       requestAnimationFrame(animateRemovedWalls);
     };
     const showAddedWalls = () => {

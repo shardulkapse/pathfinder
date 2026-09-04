@@ -97,7 +97,7 @@ const App = () => {
           clearGrid={() => {
             gridRef.current.clearGrid();
           }}
-          visualizeMaze={(animateMaze) => {
+          visualizeMaze={() => {
             gridRef.current.visualizeMaze();
           }}
         />
